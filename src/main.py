@@ -3,29 +3,27 @@ from tkinter import ttk
 from tkinter import filedialog, messagebox
 #from tkinter.ttk import *
 
-class Main:
-
-
-
-    def validate_file():
-
-        return True
+class MainWindow:
 
     def open_file(self):
         file = filedialog.askopenfile(filetypes= [('.docx', '*.docx'),
                                                   ('.pdf','*.pdf'),
                                                   ('.txt','*.txt')], 
                                                   mode='r',)
-        
-        words = file.read()
-        file.close()
 
-        self.text_paste.delete(1.0, END)
-        self.text_paste.insert(1.0, words)
-
-
-        file.close
-        
+        try:
+            words = file.read()
+        except:
+            can_read = False
+            raise Exception("File is unable to be read")
+        else:
+            can_read = True
+            self.text_paste.delete(1.0, END)
+            self.text_paste.insert(1.0, words)
+        finally:
+            file.close()
+  
+        return can_read    
         
     def run_model(self):
         # code that would produce a summary string
@@ -96,7 +94,6 @@ class Main:
 
 
 if __name__ == '__main__':
-    # run
     root = Tk()
-    Main(root)
+    MainWindow(root)
     root.mainloop()
