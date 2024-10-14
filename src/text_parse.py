@@ -115,12 +115,16 @@ class Texts:
 
         ranked = sorted(((scores[i],s) for i,s in enumerate(self.token_sentences)), reverse=True)
 
+        result = ""
         if summary_length < 1:
             # ln(x)^2, rounded up to highest integer
             summary_length = math.ceil(math.log(len(self.token_sentences))**2)        
 
         for i in range(summary_length):
-            print(ranked[i][1])
+            result += ranked[i][1] + " "
+            #print(ranked[i][1])
+
+        return result
 
     # # TextRank Algorithm
     # # Gather text.
@@ -135,5 +139,5 @@ class Texts:
         return self.original
 
     
-txt = Texts(" Text to be summarized. Here it is to utilize. A rabbi ate the president this morning. Covid was an inside job.")
-txt.run_extractive_summarization()
+#txt = Texts(" Text to be summarized. Here it is to utilize. A rabbi ate the president this morning. Covid was an inside job.")
+#txt.run_extractive_summarization()

@@ -1,3 +1,4 @@
+import text_parse as tp
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog, messagebox
@@ -26,13 +27,17 @@ class MainWindow:
         return can_read    
         
     def run_model(self):
-        # code that would produce a summary string
-        summary = StringVar(value="PH Summary Output from model")
+        summary = StringVar()
+
+        # performing extractive summarization
+        result = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization(2)
+        summary.set(result)
 
         self.text['state'] = 'normal'
         self.text.delete(1.0, END)      
-        self.text.insert(1.0, summary.get())
+        self.text.insert(1.0, result)
         self.text['state'] = 'disabled'
+
 
     def __init__(self, root):
     # creating main window
