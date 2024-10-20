@@ -20,19 +20,16 @@ from sklearn.metrics.pairwise import cosine_similarity
 class Texts:
 
     stop_words_en = set(stopwords.words('english'))
-
-    # need to move this as to never intialize more than once per app start
     model = KeyedVectors.load(r'models\word2vec-google-news-300.model')
 
-    text = None
-
-    original = None
-    token_words = None
-    token_sentences = None
-    filtered_words = None
-    filtered_sentences = None
-    sim_matrix = None
-    nx_graph = None
+    # text = None
+    # original = None
+    # token_words = None
+    # token_sentences = None
+    # filtered_words = None
+    # filtered_sentences = None
+    # sim_matrix = None
+    # nx_graph = None
 
     def __init__(self, new_text):
         self.text = new_text
@@ -70,10 +67,6 @@ class Texts:
 
     def __lemmatize(self):
         return None
-    
-    def create_sentence_vectors(self):
-        # this is done by word2vec-google-news-300
-        return
     
     def __create_sentence_similarity_matrix(self):
         sentence_vectors = []
@@ -122,22 +115,9 @@ class Texts:
 
         for i in range(summary_length):
             result += ranked[i][1] + " "
-            #print(ranked[i][1])
 
         return result
-
-    # # TextRank Algorithm
-    # # Gather text.
-    # # Split text into sentences.
-    # # Find each sentences’ vector representation – word embeddings.
-    # # Calculate similarities between sentence vectors and store in a matrix.
-    # # Convert matrix into a graph with sentences as vertices and similarity scores as edges.
-    # # x number of top-ranked sentences form the final summary.
 
     def get_original(self):     
 
         return self.original
-
-    
-#txt = Texts(" Text to be summarized. Here it is to utilize. A rabbi ate the president this morning. Covid was an inside job.")
-#txt.run_extractive_summarization()

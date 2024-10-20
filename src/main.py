@@ -1,4 +1,5 @@
 import text_parse as tp
+import abs_sum as abs
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog, messagebox
@@ -29,13 +30,14 @@ class MainWindow:
     def run_model(self):
         summary = StringVar()
 
-        # performing extractive summarization
-        result = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization(2)
-        summary.set(result)
+        extractive = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization()        
+        abstractive = abs.Abstractive(extractive).run_abstractive_summarization()        
+        
+        summary.set(abstractive)
 
         self.text['state'] = 'normal'
         self.text.delete(1.0, END)      
-        self.text.insert(1.0, result)
+        self.text.insert(1.0, summary.get())
         self.text['state'] = 'disabled'
 
 
