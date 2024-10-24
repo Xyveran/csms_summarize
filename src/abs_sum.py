@@ -1,5 +1,6 @@
 import warnings
 from transformers import BartTokenizer, BartForConditionalGeneration
+import torch
 
 class Abstractive:
 
@@ -10,14 +11,31 @@ class Abstractive:
     def __init__(self, new_text):
         self.text = new_text
         self.original = new_text
+        self.device = None
+
+    def __set_gpu_or_cpu(self):
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        else:
+            self.device = torch.device("cpu")
+
+        self.model.to(self.device)
 
     def __tokenize(self, text):
         inputs = self.tokenizer(text, return_tensors="pt", 
                                 padding=True, truncation=True)
         
+        #if self.device == torch.device("cuda"):
+        inputs = {key: val.to(self.device) for key, val in inputs.items()}
+        
         return inputs
     
-    def __create_summary_ids(self, inputs, max_length=150, min_length=40):
+    def __create_summary_ids(self, inputs, max_length=150, min_length=40): 
+        print(next(self.model.parameters()).device)
+
+        for key, val in inputs.items():
+            print(f"{key}: {val.device}")
+      
         ids = self.model.generate(
             inputs["input_ids"],
             num_beams=4,
@@ -26,9 +44,11 @@ class Abstractive:
             early_stopping=True
         )
 
-        return ids
+        return ids           
 
     def run_abstractive_summarization(self, summary_length = 0):
+        self.__set_gpu_or_cpu()
+
         inputs = self.__tokenize(self.text)
         summary_ids = self.__create_summary_ids(
             inputs, 
