@@ -40,7 +40,6 @@ class MainWindow:
         self.text.insert(1.0, summary.get())
         self.text['state'] = 'disabled'
 
-
     def __init__(self, root):
     # creating main window
     
