@@ -2,10 +2,14 @@ import text_parse as tp
 import abs_sum as abs
 from tkinter import *
 from tkinter import ttk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, font
+import sv_ttk
 #from tkinter.ttk import *
 
 class MainWindow:
+
+    standard_font_tuple = ("Malgun Gothic", 12)
+    label_font_tuple = ("SunValleyBodyFont", 12)
 
     def open_file(self):
         file = filedialog.askopenfile(filetypes= [('.docx', '*.docx'),
@@ -35,69 +39,96 @@ class MainWindow:
         
         summary.set(abstractive)
 
-        self.text['state'] = 'normal'
-        self.text.delete(1.0, END)      
-        self.text.insert(1.0, summary.get())
-        self.text['state'] = 'disabled'
+        self.text_summary['state'] = 'normal'
+        self.text_summary.delete(1.0, END)      
+        self.text_summary.insert(1.0, summary.get())
+        self.text_summary['state'] = 'disabled'
+
+    def summary_settings(self):
+
+        return None
+
 
     def __init__(self, root):
-    # creating main window
-    
-        root.title("PH app name")
+        sv_ttk.set_theme("dark")
+        root.title("Summarie")
+        root.geometry("900x600")
 
         content = Frame(root)
-        frame = ttk.Frame(content, borderwidth=50, relief="flat", 
-                        width=900, height=600)
+        frame = ttk.Frame(content, borderwidth=50, relief="flat")
         content.grid(column=0, row=0, sticky=(N, S, E, W))
-        frame.grid(column=0, row=0, columnspan=10, rowspan=10, 
-                sticky=(N, S, E, W))
+        frame.grid(column=0, row=0, columnspan=10, rowspan=10,
+                   sticky=(N, S, E, W))
         
+        root.grid_columnconfigure(0, weight=1)
+        root.grid_rowconfigure(0, weight=1)
+        content.grid_columnconfigure(0, weight=1)     
+        content.grid_columnconfigure(5, weight=1)
+        content.grid_rowconfigure(2, weight=1)
+
+
+        # frame for buttons
+        button_frame = ttk.Frame(content)
+        button_frame.grid(column=10, row=0, rowspan=10, sticky=(N, E, W,),
+                          padx=5, pady=5)
 
         # file upload button
-        file = ttk.Button(content, text='Select File', command=self.open_file)
-        file.grid(column=10, row=0, sticky=(N,E,W), 
-                pady=5, padx=5)
+        file_button = ttk.Button(button_frame, text='Select File',
+                                 command=self.open_file)
+        file_button.grid(column=0, row=2, sticky=(N,E,W),
+                         pady=5, padx=5)
         
         # summarize button
-        summary_button = ttk.Button(content, text='Summarize', 
+        summary_button = ttk.Button(button_frame, text='Summarize', 
                                     command=self.run_model)
-        summary_button.grid(column=10, row=1, sticky=(N,E,W), 
-                pady=5, padx=5)
+        summary_button.grid(column=0, row=3, sticky=(N,E,W), 
+                            pady=5, padx=5)
+        
+        # settings button
+        settings_button = ttk.Button(button_frame, text='Settings',
+                                     command=self.summary_settings)
+        settings_button.grid(column=0, row=4,sticky=(N,E,W),
+                             pady=5, padx=5)
+        
+        # empty labels
+        blank_label = ttk.Label(content)
+        blank_label_1 = ttk.Label(content)
+        blank_label.grid(column=0, row=0, columnspan=10)
+        blank_label_1.grid(column=0, row=10, columnspan=10)
+
+        # text widget label
+        paste_label = ttk.Label(content, text='Enter your text here',
+                                font=self.label_font_tuple)
+        paste_label.grid(column=0, row=1)
+
+        summary_label = ttk.Label(content, text="You'll see your summary here",
+                                  font=self.label_font_tuple)
+        summary_label.grid(column=5, row=1)
         
         # paste text widget
-        self.text_paste = Text(content, width=40, height=10,wrap="word", 
-                        padx=5, pady=5)
-        # yscroll = ttk.Scrollbar(content, orient='vertical', command=text.yview)
-        # text['yscrollcommand'] = yscroll.set
-        self.text_paste.insert('1.0', 'PH user paste')
-        self.text_paste.grid(column=0, row=1, columnspan=5, rowspan=10, 
-                        sticky='nwes', padx=5, pady=5)
-        # yscroll.grid(column=9, row=4, sticky='ns')
-        #content.grid_columnconfigure(0, weight=1)
-        #content.grid_rowconfigure(0, weight=1)
-        # the_text = t.get(1.0, END)
+        self.text_paste = Text(content, wrap="word", padx=5, pady=5)
+        self.text_paste.configure(font=self.standard_font_tuple)
+
+        yscroll_paste = ttk.Scrollbar(content, orient='vertical',
+                                command=self.text_paste.yview)
+        yscroll_paste.grid(column=4, row=2, rowspan=8, sticky='ns')
+        
+        self.text_paste['yscrollcommand'] = yscroll_paste.set
+        self.text_paste.grid(column=0, row=2, columnspan=4, rowspan=8,
+                             sticky='nwes', padx=(5,0), pady=5)
 
         # summary text widget
-        self.text = Text(content, width=40, height=10,wrap="word", 
-                    padx=5, pady=5)
-        # yscroll = ttk.Scrollbar(content, orient='vertical', command=text.yview)
-        # text['yscrollcommand'] = yscroll.set
-        self.text.insert('1.0', 'PH summary output')
-        self.text.grid(column=5, row=1, columnspan=5, rowspan=10, 
-                sticky='nwes', padx=5, pady=5)
-        self.text['state'] = 'disabled'
-        # yscroll.grid(column=9, row=4, sticky='ns')
-        #content.grid_columnconfigure(0, weight=1)
-        #content.grid_rowconfigure(0, weight=1)
-        # the_text = t.get(1.0, END)
+        self.text_summary = Text(content, wrap="word", padx=5, pady=5)
+        self.text_summary.configure(font=self.standard_font_tuple)
 
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(0, weight=1)
-        content.columnconfigure(0, weight=1)
-        content.columnconfigure(5, weight=1)
-        content.rowconfigure(1, weight=1)
-        content.rowconfigure(10, weight=1)
+        yscroll_summary = ttk.Scrollbar(content, orient='vertical',
+                                        command=self.text_summary.yview)
+        yscroll_summary.grid(column=9, row=2, rowspan=8, sticky='ns')
 
+        self.text_summary['yscrollcommand'] = yscroll_summary.set
+        self.text_summary.grid(column=5, row=2, columnspan=4, rowspan=8,
+                               sticky='nwes', padx=(5,0), pady=5)
+        self.text_summary['state'] = 'disabled'
 
 if __name__ == '__main__':
     root = Tk()

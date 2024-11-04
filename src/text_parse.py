@@ -1,15 +1,9 @@
 import nltk
 import numpy as np
 import pandas as pd
-import random
 import networkx as nx
-import re
-import spacy
-import pytextrank
 import gensim
 import gensim.downloader as api
-import mmap
-import os
 import math
 from math import e
 from nltk.tokenize import word_tokenize, sent_tokenize
@@ -21,15 +15,6 @@ class Texts:
 
     stop_words_en = set(stopwords.words('english'))
     model = KeyedVectors.load(r'models\word2vec-google-news-300.model')
-
-    # text = None
-    # original = None
-    # token_words = None
-    # token_sentences = None
-    # filtered_words = None
-    # filtered_sentences = None
-    # sim_matrix = None
-    # nx_graph = None
 
     def __init__(self, new_text):
         self.text = new_text
