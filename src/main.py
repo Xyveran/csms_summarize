@@ -1,10 +1,11 @@
-import text_parse as tp
-import abs_sum as abs
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog, messagebox, font
+from concurrent.futures import ThreadPoolExecutor
+import queue
 import sv_ttk
-#from tkinter.ttk import *
+import text_parse as tp
+import abs_sum as abs
 
 class MainWindow:
 
@@ -31,47 +32,57 @@ class MainWindow:
   
         return can_read    
         
-    def run_model(self):
-        summary = StringVar()
+    def start_summary_thread(self):
+        self.executor.submit(self.run_model)
 
+        self.root.after(100, self.check_queue)
+
+    def run_model(self):
         extractive = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization()        
         abstractive = abs.Abstractive(extractive).run_abstractive_summarization()        
-        
-        summary.set(abstractive)
 
-        self.text_summary['state'] = 'normal'
-        self.text_summary.delete(1.0, END)      
-        self.text_summary.insert(1.0, summary.get())
-        self.text_summary['state'] = 'disabled'
+        self.queue.put(abstractive)
+    
+    def check_queue(self):
+        try:
+            result = self.queue.get_nowait()
+
+            summary = StringVar()        
+            summary.set(result)
+
+            self.text_summary['state'] = 'normal'
+            self.text_summary.delete(1.0, END)      
+            self.text_summary.insert(1.0, summary.get())
+            self.text_summary['state'] = 'disabled'
+
+        except queue.Empty:
+            self.root.after(100, self.check_queue)
 
     def summary_settings(self):
 
         return None
 
-
-    def __init__(self, root):
+    def create_widgets(self):
         sv_ttk.set_theme("dark")
-        root.title("Summarie")
-        root.geometry("900x600")
+        self.root.title("Summarie")
+        self.root.geometry("900x600")
 
-        content = Frame(root)
+        content = Frame(self.root)
         frame = ttk.Frame(content, borderwidth=50, relief="flat")
         content.grid(column=0, row=0, sticky=(N, S, E, W))
         frame.grid(column=0, row=0, columnspan=10, rowspan=10,
                    sticky=(N, S, E, W))
         
-        root.grid_columnconfigure(0, weight=1)
-        root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
         content.grid_columnconfigure(0, weight=1)     
         content.grid_columnconfigure(5, weight=1)
         content.grid_rowconfigure(2, weight=1)
-
-
+        
         # frame for buttons
         button_frame = ttk.Frame(content)
         button_frame.grid(column=10, row=0, rowspan=10, sticky=(N, E, W,),
                           padx=5, pady=5)
-
         # file upload button
         file_button = ttk.Button(button_frame, text='Select File',
                                  command=self.open_file)
@@ -79,8 +90,10 @@ class MainWindow:
                          pady=5, padx=5)
         
         # summarize button
-        summary_button = ttk.Button(button_frame, text='Summarize', 
-                                    command=self.run_model)
+        summary_button = ttk.Button(button_frame,
+                                    text='Summarize',
+                                    command = self.start_summary_thread
+                                    )
         summary_button.grid(column=0, row=3, sticky=(N,E,W), 
                             pady=5, padx=5)
         
@@ -89,7 +102,7 @@ class MainWindow:
                                      command=self.summary_settings)
         settings_button.grid(column=0, row=4,sticky=(N,E,W),
                              pady=5, padx=5)
-        
+
         # empty labels
         blank_label = ttk.Label(content)
         blank_label_1 = ttk.Label(content)
@@ -130,6 +143,12 @@ class MainWindow:
                                sticky='nwes', padx=(5,0), pady=5)
         self.text_summary['state'] = 'disabled'
 
+    def __init__(self, root):
+        self.root = root
+        self.create_widgets()
+        self.queue = queue.Queue()
+        self.executor = ThreadPoolExecutor(max_workers=1)
+    
 if __name__ == '__main__':
     root = Tk()
     MainWindow(root)

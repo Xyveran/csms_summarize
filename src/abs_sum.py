@@ -49,7 +49,7 @@ class Abstractive:
 
         return ids           
 
-    def run_abstractive_summarization(self, summary_length = 0, profiling=True):
+    def run_abstractive_summarization(self, summary_length = 0, profiling=False):
         with torch.no_grad():
             with profile(
                 activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
