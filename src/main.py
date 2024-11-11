@@ -12,6 +12,16 @@ class MainWindow:
     standard_font_tuple = ("Malgun Gothic", 12)
     label_font_tuple = ("SunValleyBodyFont", 12)
 
+    def __init__(self, root):
+        self.root = root
+        self.queue = queue.Queue()
+        self.executor = ThreadPoolExecutor(max_workers=1)
+        self.create_widgets()
+        self.summary_settings = {
+            "summary_length": IntVar(value=0)
+
+        }
+
     def open_file(self):
         file = filedialog.askopenfile(filetypes= [('.docx', '*.docx'),
                                                   ('.pdf','*.pdf'),
@@ -39,7 +49,11 @@ class MainWindow:
 
     def run_model(self):
         extractive = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization()        
-        abstractive = abs.Abstractive(extractive).run_abstractive_summarization()        
+        abstractive = abs.Abstractive(extractive)\
+            .run_abstractive_summarization(
+                summary_length=self.summary_settings["summary_length"].get()
+
+            )
 
         self.queue.put(abstractive)
     
@@ -58,9 +72,41 @@ class MainWindow:
         except queue.Empty:
             self.root.after(100, self.check_queue)
 
-    def summary_settings(self):
+    def summary_settings_popup(self):
 
-        return None
+        root_x = self.root.winfo_x()
+        root_y = self.root.winfo_y()
+
+        summary_settings_window = Toplevel(self.root)
+        summary_settings_window.title("Summary Settings")
+        summary_settings_window.geometry("300x400")
+        summary_settings_window.geometry("+%d+%d" %(root_x+900,root_y+200))
+        summary_settings_window.wm_transient(self.root)
+
+        # numeric length entry
+        ttk.Label(summary_settings_window, text="Summary Length:").grid(row=2, column=0,
+                                                                        padx=10, pady=10)
+        numeric_entry = Entry(summary_settings_window, width=10,
+                              textvariable=self.summary_settings["summary_length"])
+        numeric_entry.grid(row=2, column=1)
+
+        numeric_entry.config(validate="key", validatecommand=(self.validate_numeric, '%P'))
+
+        # summary settings save button
+        summary_save_button = ttk.Button(summary_settings_window, text="Save Summary Settings",command=lambda: self.save_summary_settings(summary_settings_window))
+        summary_save_button.grid(row=5, column=0, padx=10, pady=10)
+    
+    def validate_numeric(self, value):
+        valid = False
+
+        if value == "" or value.isdigit():
+            valid = True  
+
+        return valid
+    
+    def save_summary_settings(self, summary_settings_window):
+        summary_settings_window.destroy()
+
 
     def create_widgets(self):
         sv_ttk.set_theme("dark")
@@ -83,6 +129,7 @@ class MainWindow:
         button_frame = ttk.Frame(content)
         button_frame.grid(column=10, row=0, rowspan=10, sticky=(N, E, W,),
                           padx=5, pady=5)
+        
         # file upload button
         file_button = ttk.Button(button_frame, text='Select File',
                                  command=self.open_file)
@@ -98,9 +145,9 @@ class MainWindow:
                             pady=5, padx=5)
         
         # settings button
-        settings_button = ttk.Button(button_frame, text='Settings',
-                                     command=self.summary_settings)
-        settings_button.grid(column=0, row=4,sticky=(N,E,W),
+        summary_settings_button = ttk.Button(button_frame, text='Summary Settings',
+                                     command=self.summary_settings_popup)
+        summary_settings_button.grid(column=0, row=4,sticky=(N,E,W),
                              pady=5, padx=5)
 
         # empty labels
@@ -109,7 +156,7 @@ class MainWindow:
         blank_label.grid(column=0, row=0, columnspan=10)
         blank_label_1.grid(column=0, row=10, columnspan=10)
 
-        # text widget label
+        # text widget labels
         paste_label = ttk.Label(content, text='Enter your text here',
                                 font=self.label_font_tuple)
         paste_label.grid(column=0, row=1)
@@ -142,12 +189,6 @@ class MainWindow:
         self.text_summary.grid(column=5, row=2, columnspan=4, rowspan=8,
                                sticky='nwes', padx=(5,0), pady=5)
         self.text_summary['state'] = 'disabled'
-
-    def __init__(self, root):
-        self.root = root
-        self.create_widgets()
-        self.queue = queue.Queue()
-        self.executor = ThreadPoolExecutor(max_workers=1)
     
 if __name__ == '__main__':
     root = Tk()
