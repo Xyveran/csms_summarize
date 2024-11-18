@@ -1,107 +1,79 @@
-import nltk
 import numpy as np
-import pandas as pd
 import networkx as nx
 import gensim
 import gensim.downloader as api
 import math
-from math import e
 from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.corpus import stopwords, brown
+from nltk.corpus import stopwords
 from gensim.models import Word2Vec, KeyedVectors
 from sklearn.metrics.pairwise import cosine_similarity
 
 class Texts:
+    model = None
+    stop_words_en = None
 
-    stop_words_en = set(stopwords.words('english'))
-    model = KeyedVectors.load(r'models\word2vec-google-news-300.model')
+    @classmethod
+    def load_model_and_stopwords(cls):
+        if cls.model is None or cls.stop_words_en is None:
+            cls.model = KeyedVectors.load(r'models\word2vec-google-news-300.model')
+            cls.stop_words_en = set(stopwords.words('english'))
 
     def __init__(self, new_text):
+        self.__class__.load_model_and_stopwords()
         self.text = new_text
         self.original = new_text
 
-    def __tokenize_to_words(self, input=None):
-        if input is None:
-            text = word_tokenize(self.text)
-            self.token_words = text
+    def __tokenize_to_words(self, input_text): 
+        return word_tokenize(input_text)       
+    
+    def __tokenize_to_sentences(self):
+        return sent_tokenize(self.text)
+    
+    def __drop_stopwords(self, token_list, choice='w'):
+        if choice == 'w':
+            return [word for word in token_list if word.lower() not in self.stop_words_en]
+        elif choice == 's':
+            return [" ".join([word for word in self.__tokenize_to_words(sentence) if word.lower() not in self.stop_words_en]) 
+                    for sentence in token_list]
         else:
-            return word_tokenize(input)         
-    
-    def __tokenize_to_sentences(self, input=None):
-        if input is None:
-            text = sent_tokenize(self.text)
-            self.token_sentences = text
-        else:
-            return sent_tokenize(input)
-    
-    def __drop_stopwords(self, choice):
-        text = None
+            raise ValueError("Invalid choice: use 'w' for words or 's' for sentences.")
 
-        match choice.lower():
-            case "w":
-                text = [word for word in self.token_words if word.lower() not in self.stop_words_en]
-                self.filtered_words = text
-            case "s":
-                self.filtered_sentences = []                
-                for sentence in self.token_sentences:
-                    words = self.__tokenize_to_words(sentence)
-                    text = [word for word in words if word.lower() not in self.stop_words_en]
-                    self.filtered_sentences.append(" ".join(text))
-            case _:
-                print("Use 'w' for words or 's' for sentences.")
-
-    def __lemmatize(self):
-        return None
-    
-    def __create_sentence_similarity_matrix(self):
+    def __create_sentence_vectors(self, sentences):
         sentence_vectors = []
-
-        for sentence in self.filtered_sentences:
-            word_vectors = []
-
-            if len(sentence) != 0:
-                for word in sentence:
-                    if word in self.model:
-                        word_vectors.append(self.model[word])
-                    else:
-                        word_vectors.append(np.zeros(300))
-
+        for sentence in sentences:
+            word_vectors = [self.model[word] for word in sentence if word in self.model]
+            if word_vectors:
                 sentence_vectors.append(np.mean(word_vectors, axis=0))
             else:
-                sentence_vectors.append(np.zeros(300))
+                sentence_vectors.append(np.zeors(300))
 
-        sim_matrix = np.zeros([len(self.token_sentences), len(self.token_sentences)])
+        return sentence_vectors
 
-        for i in range(len(self.token_sentences)):
-            for j in range(len(self.token_sentences)):
-                if i != j:
-                    sim_matrix[i][j] = cosine_similarity(sentence_vectors[i].reshape(1,300), 
-                                                         sentence_vectors[j].reshape(1,300))[0,0]
-
-        self.sim_matrix = sim_matrix
+    def __create_sentence_similarity_matrix(self, sentence_vectors):
+        return cosine_similarity(sentence_vectors)
 
     def graph_similarity_matrix(self):
         self.nx_graph = nx.from_numpy_array(self.sim_matrix)
         return nx.pagerank(self.nx_graph)
     
     def run_extractive_summarization(self, summary_length = 0):
-        self.__tokenize_to_sentences()
-        self.__drop_stopwords('s')
-        self.__create_sentence_similarity_matrix()
+        sentences = self.__tokenize_to_sentences()
+        filtered_sentences = self.__drop_stopwords(sentences, choice='s')
+
+        sentence_vectors = self.__create_sentence_vectors(filtered_sentences)
+
+        self.sim_matrix = self.__create_sentence_similarity_matrix(sentence_vectors)
 
         scores = self.graph_similarity_matrix()
 
-        ranked = sorted(((scores[i],s) for i,s in enumerate(self.token_sentences)), reverse=True)
+        ranked_sentences = sorted(((score, sentence) for score, sentence in zip(scores.values(), sentences)), reverse=True)
 
-        result = ""
         if summary_length < 1:
-            # ln(x)^2, rounded up to highest integer
-            summary_length = math.ceil(math.log(len(self.token_sentences))**2)        
+            summary_length = math.ceil(math.log(len(sentences))**2)
 
-        for i in range(summary_length):
-            result += ranked[i][1] + " "
+        summary = " ".join([ranked_sentences[i][1] for i in range(min(summary_length, len(ranked_sentences)))])
 
-        return result
+        return summary
 
     def get_original(self):     
 

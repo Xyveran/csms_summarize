@@ -1,7 +1,8 @@
 from tkinter import *
 from tkinter import ttk
-from tkinter import filedialog, messagebox, font
+from tkinter import filedialog, messagebox
 from concurrent.futures import ThreadPoolExecutor
+from docx import Document
 import queue
 import sv_ttk
 import text_parse as tp
@@ -22,40 +23,46 @@ class MainWindow:
 
         }
 
-    def open_file(self):
-        file = filedialog.askopenfile(filetypes= [('.docx', '*.docx'),
-                                                  ('.pdf','*.pdf'),
-                                                  ('.txt','*.txt')], 
-                                                  mode='r',)
+        self.abstractive = abs.Abstractive().load_model_and_tokenizer()
 
-        try:
-            words = file.read()
-        except:
-            can_read = False
-            raise Exception("File is unable to be read")
+    def open_file(self):
+        file = filedialog.askopenfile(
+            filetypes= [('.docx', '*.docx'),
+                        ('.pdf','*.pdf'),
+                        ('.txt','*.txt')], 
+            mode='r'
+        )
+        can_read = None
+        if file:
+            try:
+                words = file.read()
+                can_read = True
+                self.text_paste.delete(1.0, END)
+                self.text_paste.insert(1.0, words)
+            except Exception as e:
+                can_read = False
+                raise Exception(f"Error reading file: {e}")
+            finally:
+                file.close()
         else:
-            can_read = True
-            self.text_paste.delete(1.0, END)
-            self.text_paste.insert(1.0, words)
-        finally:
-            file.close()
+            can_read = False
   
         return can_read    
         
     def start_summary_thread(self):
+        self.summary_button.config(state='disabled')
         self.executor.submit(self.run_model)
-
-        self.root.after(100, self.check_queue)
+        self.check_queue()
 
     def run_model(self):
-        extractive = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization()        
-        abstractive = abs.Abstractive(extractive)\
-            .run_abstractive_summarization(
-                summary_length=self.summary_settings["summary_length"].get()
-
-            )
-
-        self.queue.put(abstractive)
+        try:
+            extractive = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization()        
+            self.abstractive = abs.Abstractive(extractive).run_abstractive_summarization(
+                    summary_length=self.summary_settings["summary_length"].get()
+                )
+            self.queue.put(self.abstractive)
+        except Exception as e:
+            self.queue.put(f"Error during summarization: {e}")
     
     def check_queue(self):
         try:
@@ -69,8 +76,42 @@ class MainWindow:
             self.text_summary.insert(1.0, summary.get())
             self.text_summary['state'] = 'disabled'
 
+            self.summary_button.config(state='normal')
+
         except queue.Empty:
-            self.root.after(100, self.check_queue)
+            self.root.after(200, self.check_queue)
+
+    def download_summary(self):
+        try:
+            self.text_summary['state'] = 'normal'
+            summary = self.text_summary.get(1.0, END).strip()
+            self.text_summary['state'] = 'disabled'
+
+            file_path = filedialog.asksaveasfilename(
+                title='Summarie Summary',
+                defaultextension='.txt',
+                filetypes=(('Word files', '*docx'),
+                        ('Text files', '*.txt'),
+                        ('All files', '*.*'))
+            )
+
+            if file_path:
+                try:
+                    if file_path.endswith('.docx'):
+                        doc = Document()
+                        doc.add_paragraph(summary)
+                        doc.save(file_path)
+                    else:
+                        with open(file_path,'w', encoding='utf-8') as file:
+                            file.write(summary)
+                    
+                    messagebox.showinfo("Success", f"Summary saved to {file_path}")
+                
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to save file:\n{e}")
+        
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred:\n{e}")
 
     def summary_settings_popup(self):
 
@@ -107,7 +148,6 @@ class MainWindow:
     def save_summary_settings(self, summary_settings_window):
         summary_settings_window.destroy()
 
-
     def create_widgets(self):
         sv_ttk.set_theme("dark")
         self.root.title("Summarie")
@@ -137,18 +177,24 @@ class MainWindow:
                          pady=5, padx=5)
         
         # summarize button
-        summary_button = ttk.Button(button_frame,
+        self.summary_button = ttk.Button(button_frame,
                                     text='Summarize',
                                     command = self.start_summary_thread
                                     )
-        summary_button.grid(column=0, row=3, sticky=(N,E,W), 
+        self.summary_button.grid(column=0, row=3, sticky=(N,E,W), 
                             pady=5, padx=5)
+        
+        # summary save button
+        summary_save_button = ttk.Button(button_frame, text='Save Summary',
+                                         command = self.download_summary)
+        summary_save_button.grid(column=0, row=4,sticky=(N,E,W),
+                                 pady=5, padx=5)
         
         # settings button
         summary_settings_button = ttk.Button(button_frame, text='Summary Settings',
                                      command=self.summary_settings_popup)
-        summary_settings_button.grid(column=0, row=4,sticky=(N,E,W),
-                             pady=5, padx=5)
+        summary_settings_button.grid(column=0, row=5,sticky=(N,E,W),
+                                     pady=5, padx=5)
 
         # empty labels
         blank_label = ttk.Label(content)
@@ -191,6 +237,9 @@ class MainWindow:
         self.text_summary['state'] = 'disabled'
     
 if __name__ == '__main__':
+    # import torch
+    # print(torch.__version__)
+    # print(torch.cuda.is_available())
     root = Tk()
     MainWindow(root)
     root.mainloop()
