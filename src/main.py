@@ -23,7 +23,7 @@ class MainWindow:
 
         }
 
-        self.abstractive = abs.Abstractive().load_model_and_tokenizer()
+        abs.Abstractive().load_model_and_tokenizer()
 
     def open_file(self):
         file = filedialog.askopenfile(
@@ -57,10 +57,11 @@ class MainWindow:
     def run_model(self):
         try:
             extractive = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization()        
-            self.abstractive = abs.Abstractive(extractive).run_abstractive_summarization(
-                    summary_length=self.summary_settings["summary_length"].get()
+            abstractive = abs.Abstractive(extractive).run_abstractive_summarization(
+                    summary_length=self.summary_settings["summary_length"].get(),
+                    profiling=False
                 )
-            self.queue.put(self.abstractive)
+            self.queue.put(abstractive)
         except Exception as e:
             self.queue.put(f"Error during summarization: {e}")
     
@@ -79,7 +80,7 @@ class MainWindow:
             self.summary_button.config(state='normal')
 
         except queue.Empty:
-            self.root.after(200, self.check_queue)
+            self.root.after(400, self.check_queue)
 
     def download_summary(self):
         try:
@@ -89,7 +90,7 @@ class MainWindow:
 
             file_path = filedialog.asksaveasfilename(
                 title='Summarie Summary',
-                defaultextension='.txt',
+                defaultextension='.docx',
                 filetypes=(('Word files', '*docx'),
                         ('Text files', '*.txt'),
                         ('All files', '*.*'))
@@ -237,9 +238,6 @@ class MainWindow:
         self.text_summary['state'] = 'disabled'
     
 if __name__ == '__main__':
-    # import torch
-    # print(torch.__version__)
-    # print(torch.cuda.is_available())
     root = Tk()
     MainWindow(root)
     root.mainloop()
