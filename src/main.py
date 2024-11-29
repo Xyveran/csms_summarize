@@ -59,7 +59,7 @@ class MainWindow:
             extractive = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization()        
             abstractive = abs.Abstractive(extractive).run_abstractive_summarization(
                     summary_length=self.summary_settings["summary_length"].get(),
-                    profiling=False
+                    profiling=True
                 )
             self.queue.put(abstractive)
         except Exception as e:

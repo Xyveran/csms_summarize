@@ -19,6 +19,7 @@ class Abstractive:
     def load_model_and_tokenizer(cls):
         if cls.model is None or cls.tokenizer is None:
             cls.__set_gpu_or_cpu()
+            #cls.device = torch.device("cpu")
 
             cls.model = BartForConditionalGeneration.from_pretrained(
                         "sshleifer/distilbart-cnn-12-6"
@@ -40,7 +41,7 @@ class Abstractive:
             cls.device = torch.device(f"cuda:{gpu_id}")
             torch.backends.cudnn.benchmark = True
             torch.backends.cudnn.deterministic = False
-            torch.cuda.synchronize()
+            #torch.cuda.synchronize()
         else:
             cls.device = torch.device("cpu")
 
@@ -51,8 +52,9 @@ class Abstractive:
             cls.model.half()
         else:
             num_cores = os.cpu_count()
-            torch.set_num_threads(num_cores)
-            threads = torch.get_num_threads()
+            threads = max(1, num_cores - 1)
+
+            torch.set_num_threads(threads)      
             torch.set_num_interop_threads(threads)
 
     def __init__(self, new_text=None):
