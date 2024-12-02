@@ -1,42 +1,35 @@
 from docx import Document
 
-class Docs:
+class WordDocuments:
 
-    def __init__(self, newdocument):
-        self.document = Document(newdocument)
+    def __init__(self, file_path):
+        self.document = Document(file_path)
 
-    # prints all paragraphs
-    def get_paragraphs(self):
-        text = ""
+    def get_all_text(self):
+        all_text = ""
+
+        paragraphs = self.__get_paragraphs()
+        tables = self.__get_tables()
+
+        all_text = paragraphs + tables
+
+        return all_text
+
+    def __get_paragraphs(self):
+        para_text = ""
 
         for paragraph in self.document.paragraphs:
-            text += paragraph.text
+            para_text += paragraph.text + '\n'
+  
+        return para_text
 
-        print(f"{paragraph.text}")
-        #return text
-
-    # prints all tables
-    def get_tables(self):
-        tables = ""
+    def __get_tables(self):
+        table_text = ""
 
         for table in self.document.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for para in cell.paragraphs:
-                        tables += " " + para.text
+                        table_text += para.text + " "
 
-        print(tables)
-        #return tables
-
-    # # prints images information
-    # def get_images(self):
-    #     for image in self.document.inline_shapes:
-    #         print(f"{image}")
-
-    def get_headings(self):
-        for content in self.document.paragraphs:
-            if content.style.name=='Heading 1':
-                print(f"{content.text}")
-
-doc = Docs("D:\\Full Sail Master\\csms_summarize\\csms_summarize\\src\\test_files\\worddocexample.docx")
-doc.get_tables()
+        return table_text

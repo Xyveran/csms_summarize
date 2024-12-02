@@ -86,7 +86,7 @@ class Abstractive:
 
         return F.pad(tensor, (0, pad_size), value=0)
 
-    def __create_summary_ids(self, inputs, max_length=150, min_length=40):
+    def __create_summary_ids(self, inputs, max_length=300, min_length=50):
         with autocast(device_type=self.device.type):
             input_ids = inputs["input_ids"]
             if not input_ids.is_contiguous():
@@ -116,7 +116,7 @@ class Abstractive:
                     with record_function("abstractive_summarization"):
                         summary_ids = self.__create_summary_ids(
                             inputs, 
-                            max_length=summary_length if summary_length > 0 else 150
+                            max_length=summary_length if summary_length > 50 else 300
                             )
                         summary = self.tokenizer.decode(
                             summary_ids[0], 
@@ -128,7 +128,7 @@ class Abstractive:
             else:
                 summary_ids = self.__create_summary_ids(
                         inputs, 
-                        max_length=summary_length if summary_length > 0 else 150
+                        max_length=summary_length if summary_length > 50 else 300
                         )
                 summary = self.tokenizer.decode(
                     summary_ids[0], 

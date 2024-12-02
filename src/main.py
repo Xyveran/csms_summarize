@@ -7,6 +7,9 @@ import queue
 import sv_ttk
 import text_parse as tp
 import abs_sum as abs
+import docx_parse as docs
+import pdf_parse as pdfs
+import os
 
 class MainWindow:
 
@@ -19,7 +22,7 @@ class MainWindow:
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.create_widgets()
         self.summary_settings = {
-            "summary_length": IntVar(value=0)
+            "summary_length": IntVar(value=50)
 
         }
 
@@ -32,22 +35,32 @@ class MainWindow:
                         ('.txt','*.txt')], 
             mode='r'
         )
-        can_read = None
-        if file:
+
+        was_read = False
+        if file and file.readable():
             try:
-                words = file.read()
-                can_read = True
+                split = os.path.splitext(file.name)
+
+                if split[1] == '.docx':
+                    words = docs.WordDocuments(file.name).get_all_text()
+
+                elif split[1] == '.pdf':
+                    words = pdfs.Pdfs(file.name).get_all_text()
+
+                else:
+                    words = file.read()
+
+                was_read = True
                 self.text_paste.delete(1.0, END)
                 self.text_paste.insert(1.0, words)
+
             except Exception as e:
-                can_read = False
                 raise Exception(f"Error reading file: {e}")
+            
             finally:
                 file.close()
-        else:
-            can_read = False
   
-        return can_read    
+        return was_read    
         
     def start_summary_thread(self):
         self.summary_button.config(state='disabled')
@@ -59,7 +72,7 @@ class MainWindow:
             extractive = tp.Texts(self.text_paste.get(1.0,'end-1c')).run_extractive_summarization()        
             abstractive = abs.Abstractive(extractive).run_abstractive_summarization(
                     summary_length=self.summary_settings["summary_length"].get(),
-                    profiling=True
+                    profiling=False
                 )
             self.queue.put(abstractive)
         except Exception as e:
